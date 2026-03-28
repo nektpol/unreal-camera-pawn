@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "TDCP_Interface.h"
 #include "GameFramework/Pawn.h"
 #include "TDCP_CameraPawn.generated.h"
 
@@ -20,7 +21,7 @@ enum class EZoomType : uint8
 };
 
 UCLASS()
-class TOPDOWNCAMERAPAWN_API ATDCP_CameraPawn : public APawn
+class TOPDOWNCAMERAPAWN_API ATDCP_CameraPawn : public APawn, public ITDCP_Interface
 {
 	GENERATED_BODY()
 
@@ -31,6 +32,23 @@ public:
 	virtual void UnPossessed() override;
 	virtual void Tick(float DeltaTime) override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
+	virtual void SetCameraMovementEnabled_Implementation(bool bEnable) override;
+	virtual void SetEdgeScrollEnabled_Implementation(bool bEnable) override;
+	virtual void SetRotationEnabled_Implementation(bool bEnable) override;
+	virtual void SetZoomEnabled_Implementation(bool bEnable) override;
+	virtual void ResetCameraRotation_Implementation() override;
+	virtual void ResetCameraZoom_Implementation() override;
+	virtual void SnapCameraToLocation_Implementation(FVector NewLocation) override;
+	virtual void InterpCameraToLocation_Implementation(FVector NewLocation, float Duration) override;
+	virtual void SetCameraMoveSpeed_Implementation(float Speed) override;
+	virtual void SetRotationSpeed_Implementation(float Speed) override;
+	virtual void SetZoomSpeed_Implementation(float Speed) override;
+	virtual void SetMinMaxZoom_Implementation(float InMinZoom, float InMaxZoom) override;
+	virtual void SetTiltZoomEnabled_Implementation(bool bEnable, float InTiltAmount) override;
+	virtual void SetEdgeScrollSpeed_Implementation(float Speed) override;
+	virtual void SetEdgeScrollThreshold_Implementation(float Pixels) override;
+	virtual void SetCameraRelativeMovement_Implementation(bool bEnable) override;
 
 protected:
 	virtual void BeginPlay() override;
@@ -90,10 +108,17 @@ private:
 	float EdgeScrollSpeed = 600.f; // units per second
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TDCP|Settings|EdgeScroll", meta = (AllowPrivateAccess = "true"))
 	bool bEdgeScrollCameraRelative = true; // moves relative to pawn rotation or world axes
+	bool bMovementEnabled = true;
+	bool bZoomEnabled = true;
 	
 	FVector CurrentVelocity = FVector::ZeroVector;
 	FVector MoveInputVelocity = FVector::ZeroVector;
 	FVector TargetVelocity = FVector::ZeroVector;
+	bool bInterpToLocationActive = false;
+	float InterpToLocationDuration = 0.f;
+	float InterpToLocationElapsed = 0.f;
+	FVector InterpToLocationStart = FVector::ZeroVector;
+	FVector InterpToLocationTarget = FVector::ZeroVector;
 	
 	float TargetYaw = 0.f;
 	float CurrentYaw = 0.f;

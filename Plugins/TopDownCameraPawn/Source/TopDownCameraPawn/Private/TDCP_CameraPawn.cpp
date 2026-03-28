@@ -62,7 +62,10 @@ void ATDCP_CameraPawn::PossessedBy(AController* NewController)
 			if (UEnhancedInputLocalPlayerSubsystem* Subsystem =
 				LP->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>())
 			{
-				Subsystem->AddMappingContext(CameraMovementMappingContext, 0);
+				if (bMovementEnabled)
+				{
+					Subsystem->AddMappingContext(CameraMovementMappingContext, 0);
+				}
 			}
 		}
 	}
@@ -144,13 +147,30 @@ void ATDCP_CameraPawn::BeginPlay()
 void ATDCP_CameraPawn::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	if (bInterpToLocationActive)
+	{
+		InterpToLocationElapsed += DeltaTime;
+		const float Alpha = InterpToLocationDuration <= 0.f
+			? 1.f
+			: FMath::Clamp(InterpToLocationElapsed / InterpToLocationDuration, 0.f, 1.f);
+		SetActorLocation(FMath::Lerp(InterpToLocationStart, InterpToLocationTarget, Alpha), true);
+
+		if (Alpha >= 1.f)
+		{
+			bInterpToLocationActive = false;
+		}
+	}
 	
 	// 1. Calculate edge scroll
-	FVector2D EdgeInput;
-	CalculateEdgeScroll(EdgeInput);
+	FVector2D EdgeInput = FVector2D::ZeroVector;
+	if (bMovementEnabled)
+	{
+		CalculateEdgeScroll(EdgeInput);
+	}
 
 	// 2. Compute total TargetVelocity
-	FVector FinalVelocity = MoveInputVelocity;
+	FVector FinalVelocity = bMovementEnabled ? MoveInputVelocity : FVector::ZeroVector;
 	if (!EdgeInput.IsNearlyZero())
 	{
 		const float Yaw = bEdgeScrollCameraRelative ? GetActorRotation().Yaw : 0.f;
@@ -170,6 +190,133 @@ void ATDCP_CameraPawn::Tick(float DeltaTime)
 	UpdateMovement(DeltaTime);
 	UpdateRotation(DeltaTime);
 	UpdateZoom(DeltaTime);
+}
+
+void ATDCP_CameraPawn::SetCameraMovementEnabled_Implementation(bool bEnable)
+{
+	bMovementEnabled = bEnable;
+
+	if (PlayerController && CameraMovementMappingContext)
+	{
+		if (ULocalPlayer* LP = PlayerController->GetLocalPlayer())
+		{
+			if (UEnhancedInputLocalPlayerSubsystem* Subsystem =
+				LP->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>())
+			{
+				if (bMovementEnabled)
+				{
+					Subsystem->AddMappingContext(CameraMovementMappingContext, 0);
+				}
+				else
+				{
+					Subsystem->RemoveMappingContext(CameraMovementMappingContext);
+				}
+			}
+		}
+	}
+
+	if (!bMovementEnabled)
+	{
+		MoveInputVelocity = FVector::ZeroVector;
+		TargetVelocity = FVector::ZeroVector;
+		CurrentVelocity = FVector::ZeroVector;
+	}
+}
+
+void ATDCP_CameraPawn::SetEdgeScrollEnabled_Implementation(bool bEnable)
+{
+	bEnableEdgeScroll = bEnable;
+}
+
+void ATDCP_CameraPawn::SetRotationEnabled_Implementation(bool bEnable)
+{
+	bEnableRotation = bEnable;
+}
+
+void ATDCP_CameraPawn::SetZoomEnabled_Implementation(bool bEnable)
+{
+	bZoomEnabled = bEnable;
+	if (!bZoomEnabled)
+	{
+		TargetZoom = CurrentZoom;
+	}
+}
+
+void ATDCP_CameraPawn::ResetCameraRotation_Implementation()
+{
+	ResetRotation();
+}
+
+void ATDCP_CameraPawn::ResetCameraZoom_Implementation()
+{
+	ResetZoom();
+}
+
+void ATDCP_CameraPawn::SnapCameraToLocation_Implementation(FVector NewLocation)
+{
+	bInterpToLocationActive = false;
+	SetActorLocation(NewLocation, true);
+}
+
+void ATDCP_CameraPawn::InterpCameraToLocation_Implementation(FVector NewLocation, float Duration)
+{
+	if (Duration <= 0.f)
+	{
+		SnapCameraToLocation_Implementation(NewLocation);
+		return;
+	}
+
+	bInterpToLocationActive = true;
+	InterpToLocationDuration = Duration;
+	InterpToLocationElapsed = 0.f;
+	InterpToLocationStart = GetActorLocation();
+	InterpToLocationTarget = NewLocation;
+}
+
+void ATDCP_CameraPawn::SetCameraMoveSpeed_Implementation(float Speed)
+{
+	MoveSpeed = FMath::Max(0.f, Speed);
+	MoveInputVelocity = MoveInputVelocity.GetClampedToMaxSize(MoveSpeed);
+	TargetVelocity = TargetVelocity.GetClampedToMaxSize(MoveSpeed);
+}
+
+void ATDCP_CameraPawn::SetRotationSpeed_Implementation(float Speed)
+{
+	RotationSpeed = FMath::Max(0.f, Speed);
+}
+
+void ATDCP_CameraPawn::SetZoomSpeed_Implementation(float Speed)
+{
+	ZoomStep = FMath::Max(0.f, Speed);
+}
+
+void ATDCP_CameraPawn::SetMinMaxZoom_Implementation(float InMinZoom, float InMaxZoom)
+{
+	MinZoom = FMath::Min(InMinZoom, InMaxZoom);
+	MaxZoom = FMath::Max(InMinZoom, InMaxZoom);
+	TargetZoom = FMath::Clamp(TargetZoom, MinZoom, MaxZoom);
+	CurrentZoom = FMath::Clamp(CurrentZoom, MinZoom, MaxZoom);
+}
+
+void ATDCP_CameraPawn::SetTiltZoomEnabled_Implementation(bool bEnable, float InTiltAmount)
+{
+	bTiltWithZoom = bEnable;
+	TiltAmount = InTiltAmount;
+}
+
+void ATDCP_CameraPawn::SetEdgeScrollSpeed_Implementation(float Speed)
+{
+	EdgeScrollSpeed = FMath::Max(0.f, Speed);
+}
+
+void ATDCP_CameraPawn::SetEdgeScrollThreshold_Implementation(float Pixels)
+{
+	EdgeScrollThreshold = FMath::Max(0.f, Pixels);
+}
+
+void ATDCP_CameraPawn::SetCameraRelativeMovement_Implementation(bool bEnable)
+{
+	bCameraRelativeMovement = bEnable;
 }
 
 void ATDCP_CameraPawn::UpdateMovement(const float& DeltaTime)
@@ -237,6 +384,8 @@ void ATDCP_CameraPawn::CalculateEdgeScroll(FVector2D& OutEdgeInput)
 
 void ATDCP_CameraPawn::HandleZoomInput(const FInputActionValue& Value)
 {
+	if (!bZoomEnabled) return;
+
 	const float AxisValue = Value.Get<float>();
 	if (FMath::IsNearlyZero(AxisValue)) return;
 
@@ -263,6 +412,12 @@ void ATDCP_CameraPawn::ResetZoom()
 
 void ATDCP_CameraPawn::HandleMoveInput(const FInputActionValue& Value)
 {
+	if (!bMovementEnabled)
+	{
+		MoveInputVelocity = FVector::ZeroVector;
+		return;
+	}
+
 	const FVector2D Input = Value.Get<FVector2D>();
 	if (!Controller) return;
 
