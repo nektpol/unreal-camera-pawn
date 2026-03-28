@@ -1,0 +1,24 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0",
+	"FriendlyName": "TopDownCameraPawn",
+	"Description": "This is a top-down camera pawn plugin",
+	"Category": "Other",
+	"CreatedBy": "Neko Creative Technologies",
+	"CreatedByURL": "",
+	"DocsURL": "",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+	"CanContainContent": true,
+	"IsBetaVersion": false,
+	"IsExperimentalVersion": false,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "TopDownCameraPawn",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	]
+}
