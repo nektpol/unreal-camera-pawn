@@ -38,6 +38,7 @@ public class TopDownCameraPawn : ModuleRules
 				"Engine",
 				"Slate",
 				"SlateCore",
+				"EnhancedInput",
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);
