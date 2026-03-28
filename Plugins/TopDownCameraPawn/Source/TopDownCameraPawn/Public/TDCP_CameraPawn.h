@@ -49,6 +49,8 @@ public:
 	virtual void SetEdgeScrollSpeed_Implementation(float Speed) override;
 	virtual void SetEdgeScrollThreshold_Implementation(float Pixels) override;
 	virtual void SetCameraRelativeMovement_Implementation(bool bEnable) override;
+	virtual void SetFollowActor_Implementation(AActor* FollowActor) override;
+	virtual void StopFollowingActor_Implementation() override;
 
 protected:
 	virtual void BeginPlay() override;
@@ -110,6 +112,9 @@ private:
 	bool bEdgeScrollCameraRelative = true; // moves relative to pawn rotation or world axes
 	bool bMovementEnabled = true;
 	bool bZoomEnabled = true;
+	UPROPERTY(Transient)
+	TObjectPtr<AActor> FollowedActor = nullptr;
+	bool bMovementEnabledBeforeFollow = true;
 	
 	FVector CurrentVelocity = FVector::ZeroVector;
 	FVector MoveInputVelocity = FVector::ZeroVector;

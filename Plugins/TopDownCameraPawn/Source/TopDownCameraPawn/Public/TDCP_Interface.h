@@ -54,4 +54,9 @@ public:
 	void SetEdgeScrollThreshold(float Pixels);
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="TDCP Interface")
 	void SetCameraRelativeMovement(bool bEnable);
+	
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="TDCP Interface")
+	void SetFollowActor(AActor* FollowActor);
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="TDCP Interface")
+	void StopFollowingActor();
 };

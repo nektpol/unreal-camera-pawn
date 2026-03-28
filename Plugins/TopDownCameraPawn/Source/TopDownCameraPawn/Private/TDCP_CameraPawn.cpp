@@ -148,6 +148,22 @@ void ATDCP_CameraPawn::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	if (FollowedActor)
+	{
+		if (!IsValid(FollowedActor))
+		{
+			StopFollowingActor_Implementation();
+		}
+		else
+		{
+			bInterpToLocationActive = false;
+			SetActorLocation(FollowedActor->GetActorLocation(), true);
+			MoveInputVelocity = FVector::ZeroVector;
+			TargetVelocity = FVector::ZeroVector;
+			CurrentVelocity = FVector::ZeroVector;
+		}
+	}
+
 	if (bInterpToLocationActive)
 	{
 		InterpToLocationElapsed += DeltaTime;
@@ -162,15 +178,17 @@ void ATDCP_CameraPawn::Tick(float DeltaTime)
 		}
 	}
 	
+	const bool bCanPlayerMoveCamera = bMovementEnabled && !FollowedActor;
+
 	// 1. Calculate edge scroll
 	FVector2D EdgeInput = FVector2D::ZeroVector;
-	if (bMovementEnabled)
+	if (bCanPlayerMoveCamera)
 	{
 		CalculateEdgeScroll(EdgeInput);
 	}
 
 	// 2. Compute total TargetVelocity
-	FVector FinalVelocity = bMovementEnabled ? MoveInputVelocity : FVector::ZeroVector;
+	FVector FinalVelocity = bCanPlayerMoveCamera ? MoveInputVelocity : FVector::ZeroVector;
 	if (!EdgeInput.IsNearlyZero())
 	{
 		const float Yaw = bEdgeScrollCameraRelative ? GetActorRotation().Yaw : 0.f;
@@ -194,6 +212,11 @@ void ATDCP_CameraPawn::Tick(float DeltaTime)
 
 void ATDCP_CameraPawn::SetCameraMovementEnabled_Implementation(bool bEnable)
 {
+	if (bEnable && FollowedActor)
+	{
+		return;
+	}
+
 	bMovementEnabled = bEnable;
 
 	if (PlayerController && CameraMovementMappingContext)
@@ -317,6 +340,36 @@ void ATDCP_CameraPawn::SetEdgeScrollThreshold_Implementation(float Pixels)
 void ATDCP_CameraPawn::SetCameraRelativeMovement_Implementation(bool bEnable)
 {
 	bCameraRelativeMovement = bEnable;
+}
+
+void ATDCP_CameraPawn::SetFollowActor_Implementation(AActor* InFollowActor)
+{
+	if (!IsValid(InFollowActor) || InFollowActor == this)
+	{
+		StopFollowingActor_Implementation();
+		return;
+	}
+
+	if (!FollowedActor)
+	{
+		bMovementEnabledBeforeFollow = bMovementEnabled;
+	}
+
+	FollowedActor = InFollowActor;
+	bInterpToLocationActive = false;
+	SetCameraMovementEnabled_Implementation(false);
+	SetActorLocation(FollowedActor->GetActorLocation(), true);
+}
+
+void ATDCP_CameraPawn::StopFollowingActor_Implementation()
+{
+	if (!FollowedActor)
+	{
+		return;
+	}
+
+	FollowedActor = nullptr;
+	SetCameraMovementEnabled_Implementation(bMovementEnabledBeforeFollow);
 }
 
 void ATDCP_CameraPawn::UpdateMovement(const float& DeltaTime)
