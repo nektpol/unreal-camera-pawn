@@ -1,31 +1,45 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// Developed by Neko Creative Technologies
 
 
 #include "TDCP_CameraPawn.h"
 
-// Sets default values
+#include "Camera/CameraComponent.h"
+#include "GameFramework/SpringArmComponent.h"
+
 ATDCP_CameraPawn::ATDCP_CameraPawn()
 {
- 	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
+	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
+	CameraBoom->SetupAttachment(RootComponent);
+	CameraBoom->bDoCollisionTest = false;
+	CameraBoom->TargetArmLength = 1200.f;
+	CameraBoom->SetRelativeRotation(FRotator(-60.f, 0.f, 0.f));
+	
+	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
+	Camera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 }
 
-// Called when the game starts or when spawned
+void ATDCP_CameraPawn::OnConstruction(const FTransform& Transform)
+{
+	Super::OnConstruction(Transform);
+	
+	CameraBoom->TargetArmLength = DefaultArmLength;
+	CameraBoom->SetRelativeRotation(FRotator(DefaultPitch, 0.f, 0.f));
+}
+
 void ATDCP_CameraPawn::BeginPlay()
 {
 	Super::BeginPlay();
 	
 }
 
-// Called every frame
 void ATDCP_CameraPawn::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
 }
 
-// Called to bind functionality to input
 void ATDCP_CameraPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
